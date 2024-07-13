@@ -1,8 +1,20 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 
 User = get_user_model()
+TITLE_MAX_LENGTH = 256
+TITLE_SHOWING_LENGTH = 50
+
+
+class PublishedManager(models.Manager):
+    def published(self):
+        return self.filter(
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=timezone.now(),
+        )
 
 
 class PublishedModel(models.Model):
@@ -16,8 +28,19 @@ class PublishedModel(models.Model):
         abstract = True
 
 
-class Category(PublishedModel):
-    title = models.CharField('Заголовок', max_length=256)
+class CreatedAtModel(models.Model):
+    created_at = models.DateTimeField(
+        'Добавлено',
+        auto_now_add=True,
+        editable=False
+    )
+
+    class Meta:
+        abstract = True
+
+
+class Category(PublishedModel, CreatedAtModel):
+    title = models.CharField('Заголовок', max_length=TITLE_MAX_LENGTH)
     description = models.TextField('Описание')
     slug = models.SlugField(
         'Идентификатор',
@@ -26,38 +49,32 @@ class Category(PublishedModel):
                    'разрешены символы латиницы, цифры, дефис и подчёркивание.'
                    )
     )
-    created_at = models.DateTimeField(
-        'Добавлено',
-        auto_now_add=True,
-        editable=False
-    )
+    objects = models.Manager()
+    published = PublishedManager()
 
     class Meta:
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return self.title
+        return self.title[:TITLE_SHOWING_LENGTH]
 
 
-class Location(PublishedModel):
-    name = models.CharField('Название места', max_length=256)
-    created_at = models.DateTimeField(
-        'Добавлено',
-        auto_now_add=True,
-        editable=False
-    )
+class Location(PublishedModel, CreatedAtModel):
+    name = models.CharField('Название места', max_length=TITLE_MAX_LENGTH)
+    objects = models.Manager()
+    published = PublishedManager()
 
     class Meta:
         verbose_name = 'местоположение'
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        return self.title
+        return self.name[:TITLE_SHOWING_LENGTH]
 
 
-class Post(PublishedModel):
-    title = models.CharField('Заголовок', max_length=256)
+class Post(PublishedModel, CreatedAtModel):
+    title = models.CharField('Заголовок', max_length=TITLE_MAX_LENGTH)
     text = models.TextField('Текст')
     pub_date = models.DateTimeField(
         'Дата и время публикации',
@@ -84,15 +101,14 @@ class Post(PublishedModel):
         null=True,
         verbose_name='Категория',
     )
-    created_at = models.DateTimeField(
-        'Добавлено',
-        auto_now_add=True,
-        editable=False
-    )
+    objects = models.Manager()
+    published = PublishedManager()
 
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
+        default_related_name = 'posts'
+        ordering = ('-pub_date',)
 
     def __str__(self):
-        return self.title
+        return self.title[:TITLE_SHOWING_LENGTH]
