@@ -10,7 +10,11 @@ TITLE_SHOWING_LENGTH = 50
 
 class PublishedManager(models.Manager):
     def published(self):
-        return self.filter(
+        return self.select_related(
+            'category',
+            'author',
+            'location',
+        ).filter(
             is_published=True,
             category__is_published=True,
             pub_date__lte=timezone.now(),
@@ -49,8 +53,6 @@ class Category(PublishedModel, CreatedAtModel):
                    'разрешены символы латиницы, цифры, дефис и подчёркивание.'
                    )
     )
-    objects = models.Manager()
-    published = PublishedManager()
 
     class Meta:
         verbose_name = 'категория'
@@ -62,8 +64,6 @@ class Category(PublishedModel, CreatedAtModel):
 
 class Location(PublishedModel, CreatedAtModel):
     name = models.CharField('Название места', max_length=TITLE_MAX_LENGTH)
-    objects = models.Manager()
-    published = PublishedManager()
 
     class Meta:
         verbose_name = 'местоположение'
@@ -102,7 +102,7 @@ class Post(PublishedModel, CreatedAtModel):
         verbose_name='Категория',
     )
     objects = models.Manager()
-    published = PublishedManager()
+    published_objects = PublishedManager()
 
     class Meta:
         verbose_name = 'публикация'
